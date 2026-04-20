@@ -1,727 +1,146 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Shopix - India ka Apna Store</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<title>Shopix Store</title>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
 <style>
-  :root {
-    --primary: #2874f0;
-    --primary-dark: #0c5bd4;
-    --secondary: #ff6600;
-    --accent: #00b96b;
-    --yellow: #ffd700;
-    --bg: #f1f3f6;
-    --white: #ffffff;
-    --text: #212121;
-    --text-light: #878787;
-    --card-shadow: 0 2px 12px rgba(0,0,0,0.1);
-    --border: #e0e0e0;
-    --header-height: 56px;
-  }
+body { font-family: Arial; background:#0f172a; color:white; text-align:center; }
+button { padding:10px; margin:5px; border:none; border-radius:8px; background:orange; }
+.card { background:#1e293b; margin:10px; padding:10px; border-radius:10px; }
+img { width:100%; border-radius:10px; }
+input, textarea { padding:10px; margin:5px; border-radius:8px; width:80%; }
+</style>
+</head>
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  
-  body {
-    font-family: 'Poppins', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-    min-height: 100vh;
-  }
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+<body>
 
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+<h1>🛒 Shopix Store</h1>
+
+<button onclick="viewCart()">🛍 Cart (<span id="cartCount">0</span>)</button>
+
+<div id="products"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// 🔥 Firebase config (same as admin)
 const firebaseConfig = {
   apiKey: "AIzaSyBa2yg_3UYg43uFmaSCH-VKiXXN7f5WBGg",
   authDomain: "shopix-ec11c.firebaseapp.com",
   projectId: "shopix-ec11c",
-  storageBucket: "shopix-ec11c.firebasestorage.app",
-  messagingSenderId: "750936730906",
-  appId: "1:750936730906:web:903be3e740746612f710a3",
-  measurementId: "G-3P7ZWT1PXG"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-  /* ===== HEADER ===== */
-  header {
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background: var(--primary);
-    height: var(--header-height);
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    gap: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-  }
+const db = getFirestore(app);
 
-  .logo {
-    font-family: 'Rajdhani', sans-serif;
-    font-size: 26px;
-    font-weight: 700;
-    color: var(--white);
-    letter-spacing: 1px;
-    flex-shrink: 0;
-    cursor: pointer;
-  }
-  .logo span { color: var(--yellow); font-style: italic; }
+// 🛍 LOAD PRODUCTS (AUTO)
+async function loadProducts() {
+  const snap = await getDocs(collection(db,"products"));
+  products.innerHTML = "";
 
-  .search-bar {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    background: var(--white);
-    border-radius: 4px;
-    overflow: hidden;
-    max-width: 600px;
-  }
-  .search-bar input {
-    flex: 1;
-    border: none;
-    outline: none;
-    padding: 10px 14px;
-    font-size: 14px;
-    font-family: 'Poppins', sans-serif;
-  }
-  .search-bar button {
-    background: var(--primary);
-    border: none;
-    padding: 10px 18px;
-    cursor: pointer;
-    color: white;
-    font-size: 16px;
-    transition: background 0.2s;
-  }
-  .search-bar button:hover { background: var(--primary-dark); }
+  snap.forEach(doc=>{
+    const p = doc.data();
+    products.innerHTML += `
+      <div class="card">
+        <img src="${p.image}">
+        <h3>${p.name}</h3>
+        ₹${p.price}<br>
+        <button onclick="addToCart('${p.name}','${p.price}','${p.image}')">Add to Cart</button>
+      </div>
+    `;
+  });
+}
 
-  .header-actions {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-    margin-left: auto;
-    flex-shrink: 0;
-  }
-  .header-btn {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    color: white;
-    cursor: pointer;
-    padding: 4px 12px;
-    border-radius: 4px;
-    border: none;
-    background: transparent;
-    font-family: 'Poppins', sans-serif;
-    transition: background 0.2s;
-    position: relative;
-  }
-  .header-btn:hover { background: rgba(255,255,255,0.15); }
-  .header-btn i { font-size: 18px; }
-  .header-btn span { font-size: 12px; font-weight: 500; }
-  .cart-badge {
-    position: absolute;
-    top: 0; right: 6px;
-    background: var(--secondary);
-    color: white;
-    font-size: 10px;
-    font-weight: 700;
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-  }
+// 🛒 CART
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-  /* ===== MAIN LAYOUT ===== */
-  .app-container { display: flex; flex-direction: column; }
+function updateCart(){
+  document.getElementById("cartCount").innerText = cart.length;
+}
+updateCart();
 
-  /* ===== CATEGORY NAV ===== */
-  .cat-nav {
-    background: var(--white);
-    padding: 10px 16px;
-    display: flex;
-    gap: 24px;
-    overflow-x: auto;
-    border-bottom: 1px solid var(--border);
-  }
-  .cat-nav::-webkit-scrollbar { display: none; }
-  .cat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-    flex-shrink: 0;
-    padding: 4px 8px;
-    border-radius: 6px;
-    transition: background 0.2s;
-    text-decoration: none;
-    color: var(--text);
-  }
-  .cat-item:hover { background: #f0f5ff; }
-  .cat-item.active { color: var(--primary); }
-  .cat-icon {
-    width: 56px; height: 56px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 24px;
-    background: linear-gradient(135deg, #e8f0fe, #c2d4ff);
-    transition: transform 0.2s;
-  }
-  .cat-item:hover .cat-icon { transform: scale(1.1); }
-  .cat-item span { font-size: 11px; font-weight: 500; text-align: center; white-space: nowrap; }
+window.addToCart = function(name,price,image){
+  cart.push({name,price,image});
+  localStorage.setItem("cart",JSON.stringify(cart));
+  updateCart();
+  alert("Added to Cart");
+};
 
-  /* ===== HERO BANNER ===== */
-  .hero-section { padding: 12px 16px 0; }
-  .banner-slider {
-    border-radius: 8px;
-    overflow: hidden;
-    position: relative;
-    height: 200px;
-    background: linear-gradient(135deg, #1a237e, #1565c0, #0288d1);
-  }
-  .banner-slide {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    padding: 24px 32px;
-    opacity: 0;
-    transition: opacity 0.6s;
-  }
-  .banner-slide.active { opacity: 1; }
-  .banner-slide:nth-child(1) { background: linear-gradient(135deg, #1a237e 0%, #0288d1 100%); }
-  .banner-slide:nth-child(2) { background: linear-gradient(135deg, #880e4f 0%, #e91e63 100%); }
-  .banner-slide:nth-child(3) { background: linear-gradient(135deg, #1b5e20 0%, #43a047 100%); }
-  .banner-content h2 {
-    font-size: 28px;
-    font-weight: 800;
-    color: white;
-    line-height: 1.2;
-    margin-bottom: 6px;
-  }
-  .banner-content p { color: rgba(255,255,255,0.85); font-size: 14px; margin-bottom: 14px; }
-  .banner-btn {
-    background: var(--yellow);
-    color: #000;
-    border: none;
-    padding: 8px 20px;
-    border-radius: 4px;
-    font-weight: 700;
-    font-size: 13px;
-    cursor: pointer;
-    font-family: 'Poppins', sans-serif;
-    transition: transform 0.15s;
-  }
-  .banner-btn:hover { transform: scale(1.05); }
-  .banner-emoji {
-    position: absolute;
-    right: 32px;
-    font-size: 80px;
-    opacity: 0.3;
-  }
-  .banner-dots {
-    position: absolute;
-    bottom: 10px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 6px;
-  }
-  .dot {
-    width: 8px; height: 8px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.4);
-    cursor: pointer;
-    transition: background 0.3s;
-  }
-  .dot.active { background: white; width: 20px; border-radius: 4px; }
-
-  /* ===== DEALS STRIP ===== */
-  .deals-strip {
-    margin: 12px 16px;
-    background: white;
-    border-radius: 8px;
-    padding: 10px 16px;
-    display: flex;
-    gap: 16px;
-    overflow-x: auto;
-    align-items: center;
-  }
-  .deals-strip::-webkit-scrollbar { display: none; }
-  .deal-tag {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    background: #fff3e0;
-    border: 1px solid #ffcc80;
-    border-radius: 20px;
-    padding: 4px 12px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--secondary);
-    white-space: nowrap;
-    cursor: pointer;
-    flex-shrink: 0;
-    transition: transform 0.15s;
-  }
-  .deal-tag:hover { transform: scale(1.05); }
-  .deal-tag.hot { background: #fce4ec; border-color: #f48fb1; color: #c2185b; }
-  .deal-tag.new { background: #e8f5e9; border-color: #a5d6a7; color: #2e7d32; }
-
-  /* ===== SECTION TITLE ===== */
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 16px 16px 8px;
-  }
-  .section-title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--text);
-  }
-  .section-title span { color: var(--primary); }
-  .view-all {
-    color: var(--primary);
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    text-decoration: none;
-    border: 1px solid var(--primary);
-    padding: 4px 10px;
-    border-radius: 20px;
-    transition: all 0.2s;
-  }
-  .view-all:hover { background: var(--primary); color: white; }
-
-  /* ===== PRODUCT GRID ===== */
-  .products-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 12px;
-    padding: 0 16px 16px;
-  }
-
-  .product-card {
-    background: var(--white);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: var(--card-shadow);
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
-    position: relative;
-  }
-  .product-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
-  }
-
-  .product-badge {
-    position: absolute;
-    top: 8px; left: 8px;
-    background: var(--secondary);
-    color: white;
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 3px;
-    z-index: 1;
-  }
-  .product-badge.new { background: var(--accent); }
-  .product-badge.hot { background: #e53935; }
-
-  .wishlist-btn {
-    position: absolute;
-    top: 8px; right: 8px;
-    background: white;
-    border: none;
-    width: 30px; height: 30px;
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    z-index: 1;
-    transition: transform 0.2s;
-    color: #ccc;
-    font-size: 14px;
-  }
-  .wishlist-btn:hover { transform: scale(1.2); }
-  .wishlist-btn.active { color: #e53935; }
-
-  .product-img {
-    width: 100%;
-    height: 180px;
-    object-fit: contain;
-    padding: 12px;
-    background: #fafafa;
-    font-size: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .product-info { padding: 10px 12px 12px; }
-  .product-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text);
-    margin-bottom: 4px;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    line-height: 1.4;
-  }
-  .product-brand { font-size: 11px; color: var(--text-light); margin-bottom: 6px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+// 🛒 CHECKOUT
+window.viewCart = function(){
+  let total=0, items="";
   
-  .rating-row {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 8px;
-  }
-  .rating-badge {
-    background: var(--accent);
-    color: white;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 6px;
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-  }
-  .rating-count { font-size: 11px; color: var(--text-light); }
+  cart.forEach(i=>{
+    total+=Number(i.price);
+    items+=`${i.name} - ₹${i.price}<br>`;
+  });
 
-  .price-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-  .price-main { font-size: 16px; font-weight: 700; color: var(--text); }
-  .price-original { font-size: 12px; color: var(--text-light); text-decoration: line-through; }
-  .price-discount { font-size: 12px; color: var(--accent); font-weight: 600; }
+  document.body.innerHTML=`
+    <h2>🧾 Checkout</h2>
 
-  .add-cart-btn {
-    width: 100%;
-    padding: 8px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 13px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: 'Poppins', sans-serif;
-    transition: background 0.2s, transform 0.15s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-  .add-cart-btn:hover { background: var(--primary-dark); transform: scale(1.02); }
-  .add-cart-btn.added { background: var(--secondary); }
+    ${items}
+    <h3>Total ₹${total}</h3>
 
-  /* ===== HORIZONTAL SCROLL SECTION ===== */
-  .scroll-section {
-    display: flex;
-    gap: 12px;
-    overflow-x: auto;
-    padding: 0 16px 16px;
-    scroll-snap-type: x mandatory;
-  }
-  .scroll-section::-webkit-scrollbar { height: 4px; }
-  .scroll-section::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 2px; }
-  .scroll-card {
-    flex-shrink: 0;
-    width: 160px;
-    scroll-snap-align: start;
-    background: white;
-    border-radius: 8px;
-    padding: 12px;
-    box-shadow: var(--card-shadow);
-    cursor: pointer;
-    transition: transform 0.2s;
-    text-align: center;
-  }
-  .scroll-card:hover { transform: translateY(-3px); }
-  .scroll-card .emoji { font-size: 48px; margin-bottom: 8px; }
-  .scroll-card .name { font-size: 12px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
-  .scroll-card .price { font-size: 13px; color: var(--primary); font-weight: 700; }
-  .scroll-card .orig { font-size: 11px; color: var(--text-light); text-decoration: line-through; }
+    <input id="custName" placeholder="Full Name"><br>
+    <input id="custPhone" placeholder="Mobile Number"><br>
+    <textarea id="custAddress" placeholder="Full Address"></textarea><br>
 
-  /* ===== OFFER BANNER ===== */
-  .offer-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-    padding: 0 16px 16px;
-  }
-  .offer-card {
-    border-radius: 8px;
-    padding: 16px;
-    color: white;
-    cursor: pointer;
-    position: relative;
-    overflow: hidden;
-    min-height: 100px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    transition: transform 0.2s;
-  }
-  .offer-card:hover { transform: scale(1.02); }
-  .offer-card:nth-child(1) { background: linear-gradient(135deg, #1565c0, #42a5f5); }
-  .offer-card:nth-child(2) { background: linear-gradient(135deg, #6a1b9a, #ab47bc); }
-  .offer-card:nth-child(3) { background: linear-gradient(135deg, #bf360c, #ff7043); }
-  .offer-card:nth-child(4) { background: linear-gradient(135deg, #1b5e20, #66bb6a); }
-  .offer-card h4 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-  .offer-card p { font-size: 11px; opacity: 0.85; }
-  .offer-card .offer-emoji { position: absolute; right: 10px; bottom: 10px; font-size: 36px; opacity: 0.4; }
-  .offer-card .discount-badge {
-    background: var(--yellow);
-    color: #000;
-    font-size: 11px;
-    font-weight: 800;
-    padding: 3px 8px;
-    border-radius: 12px;
-    display: inline-block;
-    margin-top: 6px;
+    <button onclick="pay(${total})">💳 Pay Now</button>
+    <br><br>
+    <button onclick="location.reload()">⬅ Back</button>
+  `;
+};
+
+// 💳 PAYMENT
+window.pay = function(amount){
+
+  const name = document.getElementById("custName").value;
+  const phone = document.getElementById("custPhone").value;
+  const address = document.getElementById("custAddress").value;
+
+  if(!name || !phone || !address){
+    return alert("Fill all details");
   }
 
-  /* ===== CART SIDEBAR ===== */
-  .cart-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 2000;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.3s;
-  }
-  .cart-overlay.open { opacity: 1; pointer-events: all; }
-  .cart-sidebar {
-    position: fixed;
-    top: 0; right: -420px;
-    width: 400px;
-    max-width: 100vw;
-    height: 100vh;
-    background: white;
-    z-index: 2001;
-    display: flex;
-    flex-direction: column;
-    transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: -4px 0 20px rgba(0,0,0,0.2);
-  }
-  .cart-sidebar.open { right: 0; }
-  .cart-header {
-    padding: 16px 20px;
-    background: var(--primary);
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    flex-shrink: 0;
-  }
-  .cart-header h3 { font-size: 18px; font-weight: 700; }
-  .cart-close { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
-  .cart-items { flex: 1; overflow-y: auto; padding: 12px; }
-  .cart-empty {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; height: 100%; color: var(--text-light);
-    gap: 10px;
-  }
-  .cart-empty i { font-size: 64px; color: #ddd; }
-  .cart-empty p { font-size: 16px; font-weight: 500; }
-  .cart-item {
-    display: flex;
-    gap: 12px;
-    padding: 12px;
-    border-bottom: 1px solid var(--border);
-    align-items: center;
-  }
-  .cart-item-img { font-size: 40px; flex-shrink: 0; width: 60px; text-align: center; }
-  .cart-item-info { flex: 1; }
-  .cart-item-name { font-size: 13px; font-weight: 500; margin-bottom: 4px; line-height: 1.3; }
-  .cart-item-price { font-size: 15px; font-weight: 700; color: var(--primary); }
-  .qty-controls {
-    display: flex; align-items: center; gap: 8px; margin-top: 6px;
-  }
-  .qty-btn {
-    width: 26px; height: 26px;
-    border: 1px solid var(--border);
-    border-radius: 3px;
-    background: white;
-    cursor: pointer;
-    font-size: 16px;
-    display: flex; align-items: center; justify-content: center;
-    transition: all 0.15s;
-  }
-  .qty-btn:hover { background: var(--primary); color: white; border-color: var(--primary); }
-  .qty-num { font-size: 14px; font-weight: 600; min-width: 20px; text-align: center; }
-  .remove-btn { margin-left: auto; background: none; border: none; color: #e53935; cursor: pointer; font-size: 16px; }
-  .cart-footer {
-    padding: 16px 20px;
-    border-top: 2px solid var(--border);
-    flex-shrink: 0;
-  }
-  .cart-total { display: flex; justify-content: space-between; margin-bottom: 12px; }
-  .cart-total span { font-size: 14px; color: var(--text-light); }
-  .cart-total strong { font-size: 18px; font-weight: 700; color: var(--text); }
-  .checkout-btn {
-    width: 100%;
-    padding: 14px;
-    background: var(--secondary);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: 'Poppins', sans-serif;
-    transition: transform 0.15s, background 0.2s;
-  }
-  .checkout-btn:hover { background: #e55c00; transform: scale(1.02); }
+  var options = {
+    key: "YOUR_RAZORPAY_KEY",
+    amount: amount*100,
+    currency: "INR",
+    name: "Shopix",
 
-  /* ===== TOAST ===== */
-  .toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%) translateY(80px);
-    background: #323232;
-    color: white;
-    padding: 12px 24px;
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    z-index: 9999;
-    transition: transform 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    white-space: nowrap;
-  }
-  .toast.show { transform: translateX(-50%) translateY(0); }
-  .toast.success { background: var(--accent); }
-  .toast.cart-toast { background: var(--primary); }
+    handler: async function (response){
+      
+      await addDoc(collection(db,"orders"),{
+        paymentId: response.razorpay_payment_id,
+        customerName: name,
+        phone: phone,
+        address: address,
+        items: cart,
+        total: amount,
+        status: "paid",
+        time: new Date()
+      });
 
-  /* ===== FOOTER ===== */
-  footer {
-    background: #172337;
-    color: rgba(255,255,255,0.7);
-    padding: 32px 16px 16px;
-    margin-top: 24px;
-  }
-  .footer-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-    gap: 24px;
-    margin-bottom: 24px;
-  }
-  .footer-col h4 {
-    color: rgba(255,255,255,0.9);
-    font-size: 13px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.8px;
-    margin-bottom: 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-    padding-bottom: 8px;
-  }
-  .footer-col a {
-    display: block;
-    color: rgba(255,255,255,0.6);
-    text-decoration: none;
-    font-size: 12px;
-    margin-bottom: 7px;
-    transition: color 0.2s;
-  }
-  .footer-col a:hover { color: white; }
-  .footer-bottom {
-    border-top: 1px solid rgba(255,255,255,0.1);
-    padding-top: 16px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: gap;
-    gap: 8px;
-  }
-  .footer-logo { font-family: 'Rajdhani', sans-serif; font-size: 22px; font-weight: 700; color: white; }
-  .footer-logo span { color: var(--yellow); }
-  .footer-copy { font-size: 11px; color: rgba(255,255,255,0.4); }
-  .payment-icons { display: flex; gap: 8px; flex-wrap: wrap; }
-  .pay-icon {
-    background: white;
-    color: var(--text);
-    padding: 4px 10px;
-    border-radius: 4px;
-    font-size: 10px;
-    font-weight: 700;
-  }
+      alert("Order Placed ✅");
 
-  /* ===== RESPONSIVE ===== */
-  @media(max-width:600px) {
-    .products-grid { grid-template-columns: repeat(2, 1fr); }
-    .offer-grid { grid-template-columns: 1fr; }
-    .banner-slider { height: 160px; }
-    .banner-content h2 { font-size: 20px; }
-    .header-btn span { display: none; }
-    .logo { font-size: 22px; }
-  }
-  @media(max-width:400px) {
-    .cart-sidebar { width: 100vw; }
-  }
+      localStorage.removeItem("cart");
+      location.reload();
+    }
+  };
 
-  /* ===== LOADING SKELETON ===== */
-  @keyframes shimmer {
-    0% { background-position: -400px 0; }
-    100% { background-position: 400px 0; }
-  }
-  .skeleton {
-    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
-    background-size: 800px 100%;
-    animation: shimmer 1.2s infinite;
-    border-radius: 4px;
-  }
+  var rzp = new Razorpay(options);
+  rzp.open();
+};
 
-  /* Scroll animation */
-  @keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .product-card { animation: fadeInUp 0.4s ease both; }
-  .product-card:nth-child(1) { animation-delay: 0.05s; }
-  .product-card:nth-child(2) { animation-delay: 0.1s; }
-  .product-card:nth-child(3) { animation-delay: 0.15s; }
-  .product-card:nth-child(4) { animation-delay: 0.2s; }
-  .product-card:nth-child(5) { animation-delay: 0.25s; }
-  .product-card:nth-child(6) { animation-delay: 0.3s; }
-  .product-card:nth-child(7) { animation-delay: 0.35s; }
-  .product-card:nth-child(8) { animation-delay: 0.4s; }
-</style>
-</head>
-<body>
+// 🚀 AUTO LOAD
+loadProducts();
 
-<!-- HEADER -->
-<header>
-  <div class="logo" onclick="showPage('home')">Shop<span>ix</span></div>
-  <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="Search products, brands and more..." oninput="handleSearch(this.value)">
-    <button onclick="searchProducts()"><i class="fas fa-search"></i></button>
-  </div>
-  <div class="header-actions">
-    <button class="header-btn" onclick="showPage('home')">
-      <i class="fas fa-home"></i>
-      <span>Home</span>
-    </button>
-    <button class="header-btn" onclic
+</script>
+
+</body>
+  </html>
