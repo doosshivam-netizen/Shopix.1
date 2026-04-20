@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shopix Admin</title>
+
+<style>
+body { font-family: Arial; background:#0f172a; color:white; text-align:center; }
+input, button { padding:10px; margin:5px; border-radius:8px; border:none; }
+button { background:orange; }
+.card { background:#1e293b; padding:10px; margin:10px; border-radius:10px; }
+img { width:100px; }
+</style>
+</head>
+
+<body>
+
+<h1>👑 Shopix Admin Panel</h1>
+
+<!-- LOGIN -->
+<div id="loginBox">
+  <input id="email" placeholder="Admin Email"><br>
+  <input id="password" type="password" placeholder="Password"><br>
+  <button onclick="login()">Login</button>
+</div>
+
+<!-- PANEL -->
+<div id="panel" style="display:none;">
+
+<h2>📦 Add Product</h2>
+<input id="name" placeholder="Product Name"><br>
+<input id="price" placeholder="Price"><br>
+<input id="image" placeholder="Image URL"><br>
+<button onclick="addProduct()">Add Product</button>
+
+<h2>🛒 Products</h2>
+<div id="products"></div>
+
+<h2>📦 Orders</h2>
+<div id="orders"></div>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+// 🔥 SAME CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyBa2yg_3UYg43uFmaSCH-VKiXXN7f5WBGg",
+  authDomain: "shopix-ec11c.firebaseapp.com",
+  projectId: "shopix-ec11c",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+// 👑 ADMIN EMAIL (yahan apna email daal)
+const ADMIN_EMAIL = "YOUR_EMAIL";
+
+// LOGIN
+window.login = function(){
+  signInWithEmailAndPassword(auth,email.value,password.value)
+    .then(()=>alert("Login Success"))
+    .catch(err=>alert(err.message));
+};
+
+// CHECK ADMIN
+onAuthStateChanged(auth,(user)=>{
+  if(user && user.email === ADMIN_EMAIL){
+    loginBox.style.display="none";
+    panel.style.display="block";
+    loadProducts();
+    loadOrders();
+  }
+});
+
+// ADD PRODUCT
+window.addProduct = async function(){
+  await addDoc(collection(db,"products"),{
+    name:name.value,
+    price:price.value,
+    image:image.value
+  });
+  alert("Added ✅");
+  loadProducts();
+};
+
+// LOAD PRODUCTS
+async function loadProducts(){
+  const snap = await getDocs(collection(db,"products"));
+  products.innerHTML="";
+  snap.forEach(docSnap=>{
+    const p = docSnap.data();
+    products.innerHTML+=`
+      <div class="card">
+        <img src="${p.image}"><br>
+        ${p.name} - ₹${p.price}<br>
+        <button onclick="deleteProduct('${docSnap.id}')">Delete</button>
+      </div>
+    `;
+  });
+}
+
+// DELETE PRODUCT
+window.deleteProduct = async function(id){
+  await deleteDoc(doc(db,"products",id));
+  loadProducts();
+};
+
+// LOAD ORDERS
+async function loadOrders(){
+  const snap = await getDocs(collection(db,"orders"));
+  orders.innerHTML="";
+  snap.forEach(docSnap=>{
+    const o = docSnap.data();
+    orders.innerHTML+=`
+      <div class="card">
+        👤 ${o.customerName}<br>
+        📞 ${o.phone}<br>
+        🏠 ${o.address}<br>
+        💰 ₹${o.total}<br>
+        📦 ${o.items.length} items<br>
+        ✅ ${o.status}
+      </div>
+    `;
+  });
+}
+
+</script>
+
+</body>
+    </html>
